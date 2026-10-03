@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SubnetSense - IPv4 CIDR calculator</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; background:#1d1411; color:#f3ede6; line-height:1.5; }
+  .wrap { max-width:700px; margin:0 auto; padding:26px 16px 50px; }
+  h1 { font-size:28px; } h1 span { color:#ff8a65; }
+  .sub { color:#b5aa9c; margin:6px 0 16px; }
+  .card { background:#2e1f19; border-radius:14px; padding:14px; margin-bottom:12px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; }
+  label { font-size:12px; color:#b5aa9c; display:block; margin-bottom:3px; }
+  input,select { width:100%; background:#1d1411; color:#f3ede6; border:1px solid #574f48; border-radius:8px; padding:8px; font-size:15px; font-family:inherit; }
+  button { background:#6b3a28; color:#f3ede6; border:0; padding:8px 14px; border-radius:8px; cursor:pointer; font-size:14px; margin-right:6px; margin-top:10px; }
+  table { width:100%; border-collapse:collapse; } td,th { text-align:left; padding:8px 4px; border-bottom:1px solid #433c36; } th { font-size:12px; color:#b5aa9c; font-weight:600; }
+  td.v { font-size:22px; font-weight:800; color:#ff8a65; } tr.me td.v { color:#f3ede6; }
+  .stats { display:flex; gap:22px; flex-wrap:wrap; margin-top:12px; } .stats b { display:block; font-size:20px; } .muted { color:#b5aa9c; font-size:13px; }
+  .err { color:#ff9c8a; } .note { font-size:12.5px; color:#8c8174; margin-top:6px; }
+
+  td.v { font-size:17px; } td, th { font-size:14px; } .bar { height:10px; background:#1d1411; border-radius:6px; overflow:hidden; margin-top:6px; } .bar i { display:block; height:100%; background:#ff8a65; } .bar i.over { background:#ff7b72; } .no { color:#ff9c8a; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Subnet<span>Sense</span></h1>
+  <div class="sub">Type a CIDR block. Get the range, the real number of usable hosts, and what kind of address it is.</div>
+  <div class="card">
+    <label>Network (192.168.1.0/24, a single IP, or address and mask)</label>
+    <input id="cidr" value="192.168.1.77/24" style="font-family:monospace">
+    <button id="p1">192.168.1.0/24</button><button id="p2">10.0.0.0/8</button><button id="p3">172.16.0.0/12</button><button id="p4">10.0.0.0/31</button><button id="p5">100.64.0.0/10</button>
+    <div id="info" style="margin-top:10px"></div>
+  </div>
+  <div class="card">
+    <h2 style="margin:0 0 8px;font-size:15px">Is this address inside the block?</h2>
+    <div class="grid"><div><label>IP address</label><input id="ip" value="192.168.1.200"></div></div>
+    <div id="inb" style="margin-top:8px"></div>
+  </div>
+  <div class="card">
+    <h2 style="margin:0 0 8px;font-size:15px">Split it, or size it</h2>
+    <div class="grid"><div><label>Split into prefix length /</label><input id="np" value="26"></div><div><label>Hosts needed (find the smallest block)</label><input id="hosts" value="500"></div></div>
+    <div id="spl" style="margin-top:8px"></div>
+  </div>
+  <div class="note">Rules: usable hosts = 2^(32 - prefix) - 2, because the first address is the network and the last is the broadcast; the exception is /31, where both addresses are usable on point-to-point links (RFC 3021), and /32 is a single host. Private ranges are 10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16 (RFC 1918); 100.64.0.0/10 is shared address space for carrier-grade NAT (RFC 6598); 169.254.0.0/16 is link-local (RFC 3927). Host bits in the address you type are cleared to find the network. Addresses with leading zeros such as 010.0.0.1 are rejected because some tools read them as octal. IPv4 only. "Public" here only means the address is not in a reserved range this page lists. Runs in your browser, nothing stored.</div>
+</div>
+<script src="engine.js"></script>
+<script>
+(function () {
+  var S = window.SubnetSense, $ = function (i) { return document.getElementById(i); };
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function fmt(x) { return x.toLocaleString('en-US'); }
+  function row(k, v) { return '<tr><td>' + k + '</td><td class="v">' + v + '</td></tr>'; }
+  function render() {
+    var c = S.parseCidr($('cidr').value);
+    if (c.error) { $('info').innerHTML = '<div class="err">' + esc(c.error) + '</div>'; $('inb').innerHTML = ''; $('spl').innerHTML = ''; return; }
+    var r = S.info(c);
+    $('info').innerHTML = (r.hostBits ? '<div class="muted">You gave ' + r.given + ', which has host bits set. The network is ' + r.network + '/' + r.prefix + '.</div>' : '') +
+      '<table>' + row('Network', r.network + '/' + r.prefix) + row('Subnet mask', r.mask) + row('Wildcard mask', r.wildcard) + row('First usable', r.first) + row('Last usable', r.last) + (r.broadcast ? row('Broadcast', r.broadcast) : '') + row('Usable hosts', fmt(r.usable)) + row('Total addresses', fmt(r.size)) + row('Type', r.type) + '</table>' + (r.note ? '<div class="muted" style="margin-top:6px">' + r.note + '</div>' : '');
+    var ip = S.parseIp($('ip').value);
+    $('inb').innerHTML = ip === null ? '<div class="err">Enter an address like 192.168.1.200.</div>' : S.contains(c, ip) ? '<b>Yes</b>, ' + S.ipStr(ip) + ' is inside ' + r.network + '/' + r.prefix + '.' : '<span class="no"><b>No</b></span>, ' + S.ipStr(ip) + ' is outside ' + r.network + '/' + r.prefix + '.';
+    var np = parseInt($('np').value, 10), h = parseFloat($('hosts').value), out = '';
+    var sp = S.split(c, np, 16);
+    out += sp ? '<div>/' + c.prefix + ' into /' + np + ': <b>' + fmt(sp.count) + '</b> blocks of ' + fmt(Math.pow(2, 32 - np)) + ' addresses.</div><div class="muted" style="font-family:monospace;margin-top:4px">' + sp.shown.join('<br>') + (sp.count > sp.shown.length ? '<br>... and ' + fmt(sp.count - sp.shown.length) + ' more' : '') + '</div>' : '<div class="muted">To split, the new prefix must be from /' + c.prefix + ' to /32.</div>';
+    var pf = S.prefixForHosts(h);
+    out += '<div style="margin-top:8px">' + (pf === null ? '<span class="muted">Enter a number of hosts from 1 to 4,294,967,294.</span>' : fmt(h) + ' hosts need at least a <b>/' + pf + '</b> (' + fmt(S.info({ ip: 0, prefix: pf }).usable) + ' usable).') + '</div>';
+    $('spl').innerHTML = out;
+  }
+  ['cidr', 'ip', 'np', 'hosts'].forEach(function (i) { $(i).oninput = render; });
+  [['p1', '192.168.1.0/24'], ['p2', '10.0.0.0/8'], ['p3', '172.16.0.0/12'], ['p4', '10.0.0.0/31'], ['p5', '100.64.0.0/10']].forEach(function (x) { $(x[0]).onclick = function () { $('cidr').value = x[1]; render(); }; });
+  render();
+})();
+</script>
+</body>
+</html>
