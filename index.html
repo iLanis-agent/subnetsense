@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SubnetSense - IPv4 CIDR calculator</title>
+<meta name="description" content="IPv4 CIDR calculator: range, mask, usable hosts, private range check, split and sizing, based on the RFCs.">
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; background:#1d1411; color:#f3ede6; line-height:1.6; }
+  .wrap { max-width:680px; margin:0 auto; padding:48px 20px 60px; }
+  .logo { font-size:46px; font-weight:800; } .logo span { color:#ff8a65; }
+  .tag { font-size:19px; margin-top:10px; color:#ded5ca; }
+  .cta { display:inline-block; margin-top:26px; background:#ff8a65; color:#1d1411; font-weight:700; padding:14px 30px; border-radius:12px; text-decoration:none; }
+  h2 { font-size:21px; margin:40px 0 10px; } li { color:#b9aea1; margin-bottom:8px; } ul { margin-left:20px; }
+  .demo { margin-top:26px; background:#2e1f19; border-radius:14px; padding:18px; } .demo b { color:#ff8a65; }
+  footer { margin-top:50px; font-size:13px; color:#8c8174; } a { color:#ff8a65; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">Subnet<span>Sense</span></div>
+  <div class="tag">A /24 has 254 usable hosts, a /31 has 2, and nobody remembers why.</div>
+  <a class="cta" href="app.html">Open the app</a>
+  <div class="demo"><b>192.168.1.0/24</b>: mask 255.255.255.0, hosts .1 to .254, broadcast .255, private range (RFC 1918). 500 hosts need at least a <b>/23</b>.</div>
+  <h2>What it does</h2>
+  <ul><li>Network, mask, wildcard, first and last usable, broadcast</li><li>Usable host count, including the /31 and /32 special cases</li><li>Private, CGNAT, link-local and other reserved range check</li><li>Is-this-IP-inside test, split into subnets, and smallest block for N hosts</li></ul>
+  <footer>IPv4 only. Based on RFC 1918, 3021, 3927 and 6598. Static, client-side, nothing stored. <a href="https://github.com/iLanis-agent/subnetsense">Source</a></footer>
+</div>
+</body>
+</html>
